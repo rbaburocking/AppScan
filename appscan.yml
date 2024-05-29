@@ -1,0 +1,49 @@
+variables:
+  aseToken: C:\ProgramData\HCL\AppScanSource\config\ounceautod.token
+  aseHostname: EC2AMAZ-44NU39T
+  aseAppName: $CI_PROJECT_NAME
+  aseApiKeyId: 3GDXLWZTK6TTWQQSF5TAW4LM3FV2KG7N
+  aseApiKeySecret: L07IQH9RBOUS0TYKL1NXU7459AVVI9YM
+  compiledArtifactFolder: none # when is "none" scan sourcecodeonly 
+  scanConfig: Normal scan
+  sevSecGw: highIssues
+  maxIssuesAllowed: 100
+# artifactFolder: $CI_PROJECT_DIR\build\libs 
+# artifactName: xxxxxxxxxxxxx.war
+
+stages:
+- scan-sast
+
+scan-sast-job:
+  stage: scan-sast
+  tags:
+  - Riyadrunner1
+  script:
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscanase_create_application_ase.ps1 -OutFile appscanase_create_application_ase.ps1
+  - .\appscanase_create_application_ase.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscansrc_create_config_scan_folder.ps1 -OutFile appscansrc_create_config_scan_folder.ps1
+  - .\appscansrc_create_config_scan_folder.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscansrc_scan.ps1 -OutFile appscansrc_scan.ps1
+  - .\appscansrc_scan.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscansrc_publish_assessment_to_enterprise.ps1 -OutFile appscansrc_publish_assessment_to_enterprise.ps1
+  - .\appscansrc_publish_assessment_to_enterprise.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscanase_get_xml_report_from_enterprise.ps1 -OutFile appscanase_get_xml_report_from_enterprise.ps1
+  - .\appscanase_get_xml_report_from_enterprise.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscanase_convert_ase_sast_xml_to_gitlab_json.ps1 -OutFile appscanase_convert_ase_sast_xml_to_gitlab_json.ps1
+  - .\appscanase_convert_ase_sast_xml_to_gitlab_json.ps1
+
+  - Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrocia/Integration-AppScan-onprem-and-Gitlab/main/scripts/appscansrc_check_security_gate.ps1 -OutFile appscansrc_check_security_gate.ps1
+  - .\appscansrc_check_security_gate.ps1
+
+  artifacts:
+    when: always
+    paths:
+      - "*.ozasmt"
+      - "*.pdf"
+    reports:
+      sast: .\scan_report\gl-sast-report.json
